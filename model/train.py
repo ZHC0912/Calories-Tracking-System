@@ -85,6 +85,43 @@ def locate_dataset_dir(root: Path) -> Path:
     return best
 
 
+def clean_dataset(data_dir: Path) -> int:
+    """Delete files TensorFlow can't decode (corrupt or mislabeled format).
+
+    image_dataset_from_directory aborts the whole run on a single bad file, and
+    Kaggle dumps occasionally contain truncated/non-image files. We test-decode
+    each candidate with the SAME settings the loader uses (channels=3, no
+    animation), so anything that survives here trains cleanly. A .cleaned marker
+    skips the (slow) re-scan on later runs over the cached download.
+    """
+    image_exts = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
+    marker = data_dir / ".cleaned"
+    if marker.exists():
+        print("Dataset already cleaned (marker present); skipping scan.")
+        return 0
+
+    paths = [
+        p
+        for p in data_dir.rglob("*")
+        if p.is_file() and p.suffix.lower() in image_exts
+    ]
+    print(f"Checking {len(paths)} image files for corruption ...")
+    removed = 0
+    for i, path in enumerate(paths, 1):
+        try:
+            tf.io.decode_image(
+                tf.io.read_file(str(path)), channels=3, expand_animations=False
+            )
+        except Exception:
+            print(f"  removing undecodable file: {path}")
+            path.unlink()
+            removed += 1
+        if i % 2000 == 0:
+            print(f"  ... {i}/{len(paths)} checked")
+    marker.write_text("ok", encoding="utf-8")
+    return removed
+
+
 def build_datasets(data_dir: Path, img_size: int, batch_size: int, seed: int):
     """Return (train_ds, val_ds, test_ds, class_names) with an 80/10/10 split.
 
@@ -174,6 +211,10 @@ def main() -> None:
     data_dir = locate_dataset_dir(data_dir)
     print(f"Using image root: {data_dir}")
 
+    removed = clean_dataset(data_dir)
+    if removed:
+        print(f"Removed {removed} undecodable file(s) before training.")
+
     train_ds, val_ds, test_ds, class_names = build_datasets(
         data_dir, args.img_size, args.batch_size, args.seed
     )
@@ -201,10 +242,12 @@ def main() -> None:
         ],
         name="augmentation",
     )
+    # Don't cache the augmented train set: caching would freeze the random
+    # augmentation to its first-epoch result (and ~8800 imgs would bloat RAM).
+    # val/test aren't augmented, so caching them is safe and speeds up eval.
     train_ds = train_ds.map(
         lambda x, y: (augment(x, training=True), y), num_parallel_calls=AUTOTUNE
-    )
-    train_ds = train_ds.cache().prefetch(AUTOTUNE)
+    ).prefetch(AUTOTUNE)
     val_ds = val_ds.cache().prefetch(AUTOTUNE)
     test_ds = test_ds.cache().prefetch(AUTOTUNE)
 
