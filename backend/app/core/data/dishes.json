@@ -5,7 +5,7 @@
     "bucket_grams": {"small": 200.0, "medium": 300.0, "large": 450.0}
   },
   "char kway teow": {
-    "usda_query": "fried rice noodles with meat and vegetables",
+    "usda_query": "chow fun noodles",
     "default_grams": 350.0,
     "bucket_grams": {"small": 250.0, "medium": 350.0, "large": 500.0}
   },
@@ -15,7 +15,7 @@
     "bucket_grams": {"small": 65.0, "medium": 95.0, "large": 190.0}
   },
   "chicken rice": {
-    "usda_query": "rice with chicken",
+    "usda_query": "chicken and rice no sauce",
     "default_grams": 400.0,
     "bucket_grams": {"small": 300.0, "medium": 400.0, "large": 550.0}
   },
@@ -30,7 +30,7 @@
     "bucket_grams": {"small": 250.0, "medium": 350.0, "large": 500.0}
   },
   "laksa": {
-    "usda_query": "rice noodle soup with coconut milk",
+    "usda_query": "chicken curry with coconut milk",
     "default_grams": 500.0,
     "bucket_grams": {"small": 400.0, "medium": 500.0, "large": 650.0}
   },
@@ -45,22 +45,22 @@
     "bucket_grams": {"small": 300.0, "medium": 400.0, "large": 550.0}
   },
   "kaya toast": {
-    "usda_query": "toast with butter and jam",
+    "usda_query": "white bread toasted",
     "default_grams": 80.0,
     "bucket_grams": {"small": 60.0, "medium": 80.0, "large": 140.0}
   },
   "popiah": {
-    "usda_query": "fresh spring roll with vegetables",
+    "usda_query": "spring roll vegetable",
     "default_grams": 150.0,
     "bucket_grams": {"small": 100.0, "medium": 150.0, "large": 250.0}
   },
   "hamburger": {
-    "usda_query": "hamburger on bun",
+    "usda_query": "hamburger one patty plain",
     "default_grams": 220.0,
     "bucket_grams": {"small": 150.0, "medium": 220.0, "large": 320.0}
   },
   "fish and chips": {
-    "usda_query": "fried battered fish",
+    "usda_query": "fried breaded fish",
     "default_grams": 350.0,
     "bucket_grams": {"small": 250.0, "medium": 350.0, "large": 500.0}
   }

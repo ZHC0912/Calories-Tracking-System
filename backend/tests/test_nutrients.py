@@ -54,3 +54,25 @@ def test_lookup_never_calls_network_without_key(tmp_path, monkeypatch):
 def test_missing_cache_file_is_treated_as_empty(tmp_path):
     lookup = NutrientLookup(api_key="", cache_path=tmp_path / "does_not_exist.json")
     assert lookup.per_100g("chicken rice") is None
+
+
+def test_pick_food_prefers_description_overlap():
+    # USDA often ranks a partial match (the bun) first; we should pick the food
+    # whose description shares more words with the query.
+    foods = [
+        {"description": "Roll, white, hamburger bun",
+         "foodNutrients": [{"nutrientId": 1008, "value": 280}]},
+        {"description": "Hamburger, one patty plain",
+         "foodNutrients": [{"nutrientId": 1008, "value": 250}]},
+    ]
+    pick = NutrientLookup._pick_food("hamburger one patty plain", foods)
+    assert pick["description"] == "Hamburger, one patty plain"
+
+
+def test_pick_food_skips_entries_without_energy():
+    foods = [
+        {"description": "exact match", "foodNutrients": []},  # no kcal -> skip
+        {"description": "has energy", "foodNutrients": [{"nutrientId": 1008, "value": 100}]},
+    ]
+    pick = NutrientLookup._pick_food("exact match", foods)
+    assert pick["description"] == "has energy"

@@ -1,1 +1,106 @@
-{}
+{
+  "rice cooked with coconut milk": {
+    "kcal": 267.0,
+    "protein": 3.57,
+    "fat": 17.23,
+    "carbs": 26.55,
+    "fdc_id": 2709032,
+    "description": "Rice, cooked with coconut milk"
+  },
+  "chow fun noodles": {
+    "kcal": 102.0,
+    "protein": 7.09,
+    "fat": 2.74,
+    "carbs": 11.51,
+    "fdc_id": 2708796,
+    "description": "Chow fun noodles with meat and vegetables"
+  },
+  "paratha": {
+    "kcal": 326.0,
+    "protein": 6.36,
+    "fat": 13.2,
+    "carbs": 45.35,
+    "fdc_id": 2707715,
+    "description": "Bread, paratha"
+  },
+  "chicken and rice no sauce": {
+    "kcal": 149.0,
+    "protein": 6.46,
+    "fat": 5.84,
+    "carbs": 16.97,
+    "fdc_id": 2706537,
+    "description": "Chicken or turkey and rice, no sauce"
+  },
+  "fried rice": {
+    "kcal": 174.0,
+    "protein": 3.84,
+    "fat": 3.19,
+    "carbs": 32.5,
+    "fdc_id": 2708951,
+    "description": "Rice, fried, meatless"
+  },
+  "fried noodles with vegetables": {
+    "kcal": 102.0,
+    "protein": 7.09,
+    "fat": 2.74,
+    "carbs": 11.51,
+    "fdc_id": 2708796,
+    "description": "Chow fun noodles with meat and vegetables"
+  },
+  "chicken curry with coconut milk": {
+    "kcal": 107.0,
+    "protein": 6.48,
+    "fat": 6.48,
+    "carbs": 6.54,
+    "fdc_id": 2706437,
+    "description": "Chicken curry"
+  },
+  "grilled marinated chicken": {
+    "kcal": 151.0,
+    "protein": 22.31,
+    "fat": 5.81,
+    "carbs": 2.36,
+    "fdc_id": 2706090,
+    "description": "Chicken fillet, grilled"
+  },
+  "rice with chicken and vegetables": {
+    "kcal": 109.0,
+    "protein": 6.56,
+    "fat": 0.91,
+    "carbs": 18.06,
+    "fdc_id": 2707115,
+    "description": "Chicken in soy-based sauce, rice and vegetables, frozen meal"
+  },
+  "white bread toasted": {
+    "kcal": 293.0,
+    "protein": 10.36,
+    "fat": 3.94,
+    "carbs": 54.07,
+    "fdc_id": 2707599,
+    "description": "Bread, white, toasted"
+  },
+  "hamburger one patty plain": {
+    "kcal": 280.0,
+    "protein": 17.83,
+    "fat": 13.86,
+    "carbs": 20.14,
+    "fdc_id": 2706928,
+    "description": "Hamburger, on wheat bun, 1 small patty"
+  },
+  "fried breaded fish": {
+    "kcal": 238.0,
+    "protein": 15.93,
+    "fat": 13.69,
+    "carbs": 11.72,
+    "fdc_id": 2706298,
+    "description": "Fish, bass, fried"
+  },
+  "spring roll vegetable": {
+    "kcal": 93.0,
+    "protein": 1.8,
+    "fat": 1.47,
+    "carbs": 17.65,
+    "fdc_id": 2708966,
+    "description": "Sushi roll, vegetable"
+  }
+}

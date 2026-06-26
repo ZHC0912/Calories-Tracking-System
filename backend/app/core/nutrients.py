@@ -28,6 +28,32 @@ NUTRIENT_FIELDS = ("kcal", "protein", "fat", "carbs")
 
 EMPTY_NUTRIENTS: dict[str, float | None] = {field: None for field in NUTRIENT_FIELDS}
 
+# How many search hits to weigh before picking. USDA's #1 result is often a poor
+# keyword match (a "bun" for "hamburger"), so we look at a few and choose the one
+# whose description best overlaps the query.
+_SEARCH_PAGE_SIZE = 5
+
+# Connective words ignored when scoring description overlap.
+_STOPWORDS = frozenset(
+    {"with", "and", "on", "the", "of", "in", "a", "an", "or", "to", "for"}
+)
+
+
+def _tokens(text: str) -> set[str]:
+    """Lowercase alphanumeric word set, minus connective stopwords."""
+    words = "".join(c if c.isalnum() else " " for c in text.lower()).split()
+    return {w for w in words if w not in _STOPWORDS}
+
+
+def _extract_nutrients(food: dict) -> dict:
+    """Pull our four per-100g nutrient fields out of a USDA food record."""
+    result: dict = dict(EMPTY_NUTRIENTS)
+    for nutrient in food.get("foodNutrients", []):
+        field = _NUTRIENT_IDS.get(nutrient.get("nutrientId"))
+        if field is not None and nutrient.get("value") is not None:
+            result[field] = float(nutrient["value"])
+    return result
+
 
 def scale_nutrients(per_100g: dict, grams: float) -> dict[str, float | None]:
     """Scale per-100g values to a portion. None stays None."""
@@ -78,25 +104,44 @@ class NutrientLookup:
                     "api_key": self.api_key,
                     "query": query,
                     "dataType": "Survey (FNDDS)",  # prepared dishes, values per 100 g
-                    "pageSize": 1,
+                    "pageSize": _SEARCH_PAGE_SIZE,
                 },
                 timeout=10,
             )
             response.raise_for_status()
             foods = response.json().get("foods") or []
-            if not foods:
-                return None
-            food = foods[0]
-            result: dict = dict(EMPTY_NUTRIENTS)
-            for nutrient in food.get("foodNutrients", []):
-                field = _NUTRIENT_IDS.get(nutrient.get("nutrientId"))
-                if field is not None and nutrient.get("value") is not None:
-                    result[field] = float(nutrient["value"])
-            result["fdc_id"] = food.get("fdcId")
-            result["description"] = food.get("description")
-            return result
         except (requests.RequestException, ValueError, KeyError):
             return None
+
+        food = self._pick_food(query, foods)
+        if food is None:
+            return None
+        result = _extract_nutrients(food)
+        if result["kcal"] is None:
+            return None  # a match with no energy data is no better than no match
+        result["fdc_id"] = food.get("fdcId")
+        result["description"] = food.get("description")
+        return result
+
+    @staticmethod
+    def _pick_food(query: str, foods: list[dict]) -> dict | None:
+        """Choose the search hit whose description best matches the query.
+
+        USDA ranks by keyword relevance, which often floats a partial match to
+        the top (a 'bun' for 'hamburger'). Among hits that have energy data, take
+        the one sharing the most words with the query, breaking ties by USDA rank.
+        """
+        best: dict | None = None
+        best_key = (-1, 0)
+        q_tokens = _tokens(query)
+        for rank, food in enumerate(foods):
+            if _extract_nutrients(food)["kcal"] is None:
+                continue
+            overlap = len(q_tokens & _tokens(food.get("description", "")))
+            key = (overlap, -rank)
+            if key > best_key:
+                best, best_key = food, key
+        return best
 
     def _load_cache(self) -> dict:
         try:
