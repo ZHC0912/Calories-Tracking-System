@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 from datetime import date
 from pathlib import Path
 
@@ -85,75 +86,66 @@ def locate_dataset_dir(root: Path) -> Path:
     return best
 
 
-def clean_dataset(data_dir: Path) -> int:
-    """Delete files TensorFlow can't decode (corrupt or mislabeled format).
-
-    image_dataset_from_directory aborts the whole run on a single bad file, and
-    Kaggle dumps occasionally contain truncated/non-image files. We test-decode
-    each candidate with the SAME settings the loader uses (channels=3, no
-    animation), so anything that survives here trains cleanly. A .cleaned marker
-    skips the (slow) re-scan on later runs over the cached download.
-    """
-    image_exts = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
-    marker = data_dir / ".cleaned"
-    if marker.exists():
-        print("Dataset already cleaned (marker present); skipping scan.")
-        return 0
-
-    paths = [
-        p
-        for p in data_dir.rglob("*")
-        if p.is_file() and p.suffix.lower() in image_exts
-    ]
-    print(f"Checking {len(paths)} image files for corruption ...")
-    removed = 0
-    for i, path in enumerate(paths, 1):
-        try:
-            tf.io.decode_image(
-                tf.io.read_file(str(path)), channels=3, expand_animations=False
-            )
-        except Exception:
-            print(f"  removing undecodable file: {path}")
-            path.unlink()
-            removed += 1
-        if i % 2000 == 0:
-            print(f"  ... {i}/{len(paths)} checked")
-    marker.write_text("ok", encoding="utf-8")
-    return removed
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
 
 
 def build_datasets(data_dir: Path, img_size: int, batch_size: int, seed: int):
     """Return (train_ds, val_ds, test_ds, class_names) with an 80/10/10 split.
 
-    image_dataset_from_directory only does a 2-way split, so we carve the test
-    set out of the validation half. class_names is captured BEFORE any map() so
-    the labels stay attached to their integer indices.
+    Built from explicit file lists (not image_dataset_from_directory) so the
+    decode step is ours: ignore_errors() silently drops files TensorFlow can't
+    decode (the Kaggle dump has a corrupt image, e.g. nasi_lemak/918.jpg). This
+    also needs no write access — the source may be a read-only mount like Colab's
+    /kaggle/input. class_names is the sorted folder names, matching the integer
+    label order, so class_names[pred] is the dish label for prediction index.
     """
-    train_ds = keras.utils.image_dataset_from_directory(
-        data_dir,
-        validation_split=0.2,
-        subset="training",
-        seed=seed,
-        image_size=(img_size, img_size),
-        batch_size=batch_size,
-        label_mode="int",
-    )
-    class_names = train_ds.class_names
+    class_names = sorted(d.name for d in data_dir.iterdir() if d.is_dir())
+    name_to_idx = {name: i for i, name in enumerate(class_names)}
 
-    val_full = keras.utils.image_dataset_from_directory(
-        data_dir,
-        validation_split=0.2,
-        subset="validation",
-        seed=seed,
-        image_size=(img_size, img_size),
-        batch_size=batch_size,
-        label_mode="int",
-    )
-    # Split the 20% validation half into 10% val / 10% test.
-    val_batches = val_full.cardinality()
-    test_ds = val_full.take(val_batches // 2)
-    val_ds = val_full.skip(val_batches // 2)
+    paths, labels = [], []
+    for name in class_names:
+        for img in (data_dir / name).iterdir():
+            if img.is_file() and img.suffix.lower() in IMAGE_EXTS:
+                paths.append(str(img))
+                labels.append(name_to_idx[name])
 
+    # Deterministic shuffle, then split 80% train / 10% val / 10% test.
+    order = list(range(len(paths)))
+    random.Random(seed).shuffle(order)
+    paths = [paths[i] for i in order]
+    labels = [labels[i] for i in order]
+    n = len(paths)
+    n_split = n // 10  # size of each of val and test
+    splits = {
+        "test": (paths[:n_split], labels[:n_split]),
+        "val": (paths[n_split : 2 * n_split], labels[n_split : 2 * n_split]),
+        "train": (paths[2 * n_split :], labels[2 * n_split :]),
+    }
+    print(
+        f"Found {n} images in {len(class_names)} classes "
+        f"-> train {len(splits['train'][0])}, "
+        f"val {len(splits['val'][0])}, test {len(splits['test'][0])}"
+    )
+
+    def load(path, label):
+        img = tf.io.decode_image(
+            tf.io.read_file(path), channels=3, expand_animations=False
+        )
+        img = tf.image.resize(img, (img_size, img_size))  # -> float32 in [0, 255]
+        img.set_shape((img_size, img_size, 3))
+        return img, label
+
+    def make_ds(file_paths, file_labels, training):
+        ds = tf.data.Dataset.from_tensor_slices((file_paths, file_labels))
+        if training:
+            ds = ds.shuffle(len(file_paths), seed=seed, reshuffle_each_iteration=True)
+        ds = ds.map(load, num_parallel_calls=AUTOTUNE)
+        ds = ds.ignore_errors()  # drop any image that fails to decode
+        return ds.batch(batch_size)
+
+    train_ds = make_ds(*splits["train"], training=True)
+    val_ds = make_ds(*splits["val"], training=False)
+    test_ds = make_ds(*splits["test"], training=False)
     return train_ds, val_ds, test_ds, class_names
 
 
@@ -210,10 +202,6 @@ def main() -> None:
 
     data_dir = locate_dataset_dir(data_dir)
     print(f"Using image root: {data_dir}")
-
-    removed = clean_dataset(data_dir)
-    if removed:
-        print(f"Removed {removed} undecodable file(s) before training.")
 
     train_ds, val_ds, test_ds, class_names = build_datasets(
         data_dir, args.img_size, args.batch_size, args.seed
