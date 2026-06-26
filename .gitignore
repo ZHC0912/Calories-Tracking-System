@@ -1,0 +1,41 @@
+# Repo-wide ignores. Subprojects keep their own .gitignore too
+# (backend/.gitignore, app/.gitignore) — this covers the rest.
+
+# --- Secrets (never commit) ---
+.env
+*.env
+!.env.example
+kaggle.json          # Kaggle API token, if dropped into the repo
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- ML training data & artifacts (large / regenerated) ---
+# Datasets are downloaded by model/train.py; never version them.
+model/datasets/*
+!model/datasets/.gitkeep
+# Intermediate training output (the trained .keras, class_names, metrics).
+model/artifacts/
+# Exported model binaries are large — commit metadata, not the .onnx itself.
+# (Use Git LFS or GitHub Releases if you want to ship the weights.)
+*.onnx
+*.keras
+*.h5
+*.tflite
+
+# --- Local databases (real DBs are external, e.g. Supabase) ---
+*.db
+*.sqlite3
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

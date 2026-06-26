@@ -1,0 +1,67 @@
+{
+  "nasi lemak": {
+    "usda_query": "rice cooked with coconut milk",
+    "default_grams": 300.0,
+    "bucket_grams": {"small": 200.0, "medium": 300.0, "large": 450.0}
+  },
+  "char kway teow": {
+    "usda_query": "fried rice noodles with meat and vegetables",
+    "default_grams": 350.0,
+    "bucket_grams": {"small": 250.0, "medium": 350.0, "large": 500.0}
+  },
+  "roti canai": {
+    "usda_query": "paratha",
+    "default_grams": 95.0,
+    "bucket_grams": {"small": 65.0, "medium": 95.0, "large": 190.0}
+  },
+  "chicken rice": {
+    "usda_query": "rice with chicken",
+    "default_grams": 400.0,
+    "bucket_grams": {"small": 300.0, "medium": 400.0, "large": 550.0}
+  },
+  "fried rice": {
+    "usda_query": "fried rice",
+    "default_grams": 300.0,
+    "bucket_grams": {"small": 200.0, "medium": 300.0, "large": 450.0}
+  },
+  "fried noodles": {
+    "usda_query": "fried noodles with vegetables",
+    "default_grams": 350.0,
+    "bucket_grams": {"small": 250.0, "medium": 350.0, "large": 500.0}
+  },
+  "laksa": {
+    "usda_query": "rice noodle soup with coconut milk",
+    "default_grams": 500.0,
+    "bucket_grams": {"small": 400.0, "medium": 500.0, "large": 650.0}
+  },
+  "satay": {
+    "usda_query": "grilled marinated chicken",
+    "default_grams": 120.0,
+    "bucket_grams": {"small": 80.0, "medium": 120.0, "large": 200.0}
+  },
+  "mixed rice": {
+    "usda_query": "rice with chicken and vegetables",
+    "default_grams": 400.0,
+    "bucket_grams": {"small": 300.0, "medium": 400.0, "large": 550.0}
+  },
+  "kaya toast": {
+    "usda_query": "toast with butter and jam",
+    "default_grams": 80.0,
+    "bucket_grams": {"small": 60.0, "medium": 80.0, "large": 140.0}
+  },
+  "popiah": {
+    "usda_query": "fresh spring roll with vegetables",
+    "default_grams": 150.0,
+    "bucket_grams": {"small": 100.0, "medium": 150.0, "large": 250.0}
+  },
+  "hamburger": {
+    "usda_query": "hamburger on bun",
+    "default_grams": 220.0,
+    "bucket_grams": {"small": 150.0, "medium": 220.0, "large": 320.0}
+  },
+  "fish and chips": {
+    "usda_query": "fried battered fish",
+    "default_grams": 350.0,
+    "bucket_grams": {"small": 250.0, "medium": 350.0, "large": 500.0}
+  }
+}

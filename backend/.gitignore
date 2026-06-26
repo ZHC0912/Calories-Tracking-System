@@ -1,0 +1,15 @@
+# secrets
+.env
+
+# python
+__pycache__/
+*.pyc
+venv/
+.venv/
+.pytest_cache/
+
+# local file storage (dev uploads)
+uploads/
+
+# local dev database (SQLite); real DBs are external
+*.db
