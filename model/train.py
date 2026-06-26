@@ -113,7 +113,7 @@ def build_datasets(data_dir: Path, img_size: int, batch_size: int, seed: int):
         label_mode="int",
     )
     # Split the 20% validation half into 10% val / 10% test.
-    val_batches = tf.data.experimental.cardinality(val_full)
+    val_batches = val_full.cardinality()
     test_ds = val_full.take(val_batches // 2)
     val_ds = val_full.skip(val_batches // 2)
 

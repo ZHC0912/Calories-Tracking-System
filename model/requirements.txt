@@ -2,13 +2,10 @@
 # Kept SEPARATE from backend/requirements.txt — the backend never trains and
 # never imports TensorFlow. Install with:  pip install -r model/requirements.txt
 #
-# TensorFlow is pinned to 2.15.x on purpose: it ships Keras 2, which tf2onnx
-# converts cleanly. On newer TF (Keras 3) ONNX export is flaky. In Colab this
-# install replaces the preinstalled TF, so RESTART THE RUNTIME afterwards.
+# TensorFlow ships preinstalled on Colab, so this install is basically a no-op
+# for TF there (and needs NO runtime restart). Export uses TF's built-in TFLite
+# converter — no fragile third-party ONNX tooling, so it tracks whatever TF
+# version Colab provides.
 
-tensorflow==2.15.*
-numpy<2            # TF 2.15 / tf2onnx require the numpy 1.x ABI
+tensorflow>=2.16   # preinstalled on Colab; pinned floor for local installs
 kagglehub>=0.3     # dataset download
-tf2onnx>=1.16.1    # Keras -> ONNX
-onnx>=1.15
-onnxruntime>=1.17  # optional: sanity-check the exported model locally
