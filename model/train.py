@@ -291,7 +291,7 @@ def main() -> None:
         encoding="utf-8",
     )
     print(f"Saved model + class_names + metrics to {ARTIFACTS_DIR}")
-    print("Next: python model/export.py  (converts to ONNX under versions/)")
+    print("Next: python model/export.py  (converts to TFLite under versions/)")
 
 
 if __name__ == "__main__":
