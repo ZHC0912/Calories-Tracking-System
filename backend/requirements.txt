@@ -15,6 +15,11 @@ email-validator>=2.0   # pydantic EmailStr
 Pillow>=10.0          # EXIF stripping of meal images
 tzdata>=2024.1         # IANA timezone data (needed on Windows)
 
+# Real model backend (MODEL_BACKEND=tflite). Optional — the stub needs neither.
+# Lightweight TFLite runtime; no full TensorFlow on the server.
+ai-edge-litert>=1.0   # serves model/versions/*/model.tflite
+numpy>=1.24           # image array for inference
+
 # tests
 pytest>=8.0
 httpx>=0.27

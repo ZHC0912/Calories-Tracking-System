@@ -32,7 +32,7 @@ async def analyze(
     bucket: str | None = Form(None, description="Size bucket hint: small/medium/large (or s/m/l)."),
 ) -> AnalyzeResponse:
     settings = get_settings()
-    backend = get_model_backend(settings.model_backend)
+    backend = get_model_backend(settings.model_backend, settings.model_dir or None)
     lookup = NutrientLookup(api_key=settings.usda_api_key, cache_path=settings.usda_cache_path)
 
     image_bytes = await image.read()

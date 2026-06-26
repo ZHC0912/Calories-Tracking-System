@@ -1,0 +1,51 @@
+{
+  "version": "model_v1",
+  "exported_on": "2026-06-26",
+  "framework": "tflite",
+  "classes": [
+    "fish_and_chips",
+    "fried_noodles",
+    "fried_rice",
+    "hamburger",
+    "kaya_toast",
+    "laksa",
+    "mixed_rice",
+    "nasi_lemak",
+    "popiah",
+    "roti_canai",
+    "satay"
+  ],
+  "num_classes": 11,
+  "input": {
+    "name": "input",
+    "shape": [
+      1,
+      224,
+      224,
+      3
+    ],
+    "layout": "NHWC",
+    "dtype": "float32",
+    "color": "RGB",
+    "value_range": [
+      0,
+      255
+    ],
+    "preprocessing": "baked into graph (Rescaling to [-1, 1] == mobilenet_v2.preprocess_input); do NOT scale pixels before inference"
+  },
+  "output": {
+    "activation": "softmax",
+    "note": "argmax index -> class_names[index] -> LABEL_TO_DISH (backend)"
+  },
+  "metrics": {
+    "test_accuracy": 0.8409090638160706,
+    "test_loss": 0.5058910846710205,
+    "num_classes": 11,
+    "trained_on": "2026-06-26",
+    "dataset": "karkengchan/malaysia-food-11",
+    "img_size": 224,
+    "epochs_head": 8,
+    "epochs_finetune": 5,
+    "fine_tune_layers": 30
+  }
+}

@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     usda_api_key: str = ""
     storage_dir: str = "./uploads"
     model_backend: str = "stub"
+    # Directory holding a trained model (model.tflite + class_names.json) for the
+    # "tflite" backend. Empty = use the bundled default (model/versions/model_v1).
+    model_dir: str = ""
     usda_cache_path: str = "./data/usda_cache.json"
 
     # Phase 2 — persistence and auth.
