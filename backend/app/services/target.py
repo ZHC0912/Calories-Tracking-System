@@ -77,3 +77,21 @@ def daily_target(tdee_value: float, goal: str) -> float:
     else:
         target = tdee_value
     return round(max(target, MIN_SAFE_KCAL), 1)
+
+
+def clamp_target(value: float) -> float:
+    """Clamp a user-entered target UP to the safe floor — the same non-negotiable
+    guard daily_target() applies to the computed number."""
+    return round(max(value, MIN_SAFE_KCAL), 1)
+
+
+def effective_target(override: float | None, computed: float | None) -> float | None:
+    """The target actually used: the user's override (clamped) if set, else the
+    computed one (which may be None when the profile lacks the required stats).
+
+    An override works even without full stats, so a user can set a target without
+    entering weight/height/age/sex.
+    """
+    if override is not None:
+        return clamp_target(override)
+    return computed

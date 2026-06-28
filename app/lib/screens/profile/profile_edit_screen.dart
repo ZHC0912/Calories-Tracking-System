@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_client.dart';
@@ -21,9 +22,11 @@ class ProfileEditScreen extends ConsumerStatefulWidget {
 
 class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _username;
   late final TextEditingController _weight;
   late final TextEditingController _height;
   late final TextEditingController _age;
+  late final TextEditingController _target;
 
   String? _sex;
   late String _activity;
@@ -37,9 +40,12 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   void initState() {
     super.initState();
     final c = widget.current;
+    _username = TextEditingController(text: c.username ?? '');
     _weight = TextEditingController(text: _numText(c.weightKg));
     _height = TextEditingController(text: _numText(c.heightCm));
     _age = TextEditingController(text: c.age?.toString() ?? '');
+    // Pre-fill only a CUSTOM target; blank means "use the computed one".
+    _target = TextEditingController(text: _numText(c.targetKcalOverride));
     _sex = c.sex;
     _activity = c.activityLevel ?? 'moderate';
     _goal = c.goal ?? 'maintain';
@@ -53,9 +59,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
   @override
   void dispose() {
+    _username.dispose();
     _weight.dispose();
     _height.dispose();
     _age.dispose();
+    _target.dispose();
     super.dispose();
   }
 
@@ -65,9 +73,12 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       _saving = true;
       _error = null;
     });
+    final targetText = _target.text.trim();
+    final customTarget = targetText.isEmpty ? null : double.parse(targetText);
     try {
       await ref.read(profileApiProvider).update(
             ProfileUpdate(
+              username: _username.text.trim(),
               weightKg: double.parse(_weight.text.trim()),
               heightCm: double.parse(_height.text.trim()),
               age: int.parse(_age.text.trim()),
@@ -75,6 +86,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
               activityLevel: _activity,
               goal: _goal,
               timezone: _timezone,
+              // Blank field clears any custom target; a value sets/updates it.
+              targetKcalOverride: customTarget,
+              clearTargetOverride: customTarget == null,
             ),
           );
       ref.invalidate(profileProvider);
@@ -101,6 +115,22 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                TextFormField(
+                  controller: _username,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    helperText: 'Shown to friends',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  validator: (v) {
+                    final value = (v ?? '').trim();
+                    if (value.isEmpty) return 'Choose a username';
+                    if (value.length > 30) return 'Max 30 characters';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Expanded(
@@ -153,6 +183,30 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   value: _goal,
                   options: goals,
                   onChanged: (v) => setState(() => _goal = v!),
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _target,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Daily calorie target (optional)',
+                    suffixText: 'kcal',
+                    helperText:
+                        'Leave blank to use the computed target. Min 1200 for safety.',
+                    prefixIcon: Icon(Icons.flag_outlined),
+                  ),
+                  validator: (v) {
+                    final text = (v ?? '').trim();
+                    if (text.isEmpty) return null; // optional
+                    final value = double.tryParse(text);
+                    if (value == null) return 'Enter a number';
+                    if (value <= 0 || value > 20000) return 'Enter 1–20000';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 12),
                 TimezoneDropdown(

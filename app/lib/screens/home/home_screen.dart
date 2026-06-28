@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../api/api_client.dart';
 import '../../models/daily_report.dart';
+import '../../state/auth_provider.dart';
 import '../../state/report_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../util/formatters.dart';
@@ -37,7 +39,9 @@ class HomeScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => _ErrorView(
           message: err.toString(),
+          isUnauthorized: err is ApiException && err.isUnauthorized,
           onRetry: () => ref.invalidate(todayReportProvider),
+          onRelogin: () => ref.read(authControllerProvider.notifier).logout(),
         ),
         data: (report) => RefreshIndicator(
           onRefresh: () async => ref.invalidate(todayReportProvider),
@@ -111,10 +115,10 @@ class _SummaryCard extends StatelessWidget {
               children: [
                 Text(
                   '${report.totalIntakeKcal.round()}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 44,
                     fontWeight: FontWeight.w800,
-                    color: AppTheme.accent,
+                    color: context.accent,
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -207,7 +211,7 @@ class _TargetProgress extends StatelessWidget {
             minHeight: 10,
             backgroundColor: const Color(0xFFEFE7DD),
             valueColor: AlwaysStoppedAnimation(
-              over ? Colors.red.shade400 : AppTheme.accent,
+              over ? Colors.red.shade400 : context.accent,
             ),
           ),
         ),
@@ -296,8 +300,8 @@ class _MealCard extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               kcalText(meal.kcal),
-              style: const TextStyle(
-                  fontWeight: FontWeight.w700, color: AppTheme.accent),
+              style: TextStyle(
+                  fontWeight: FontWeight.w700, color: context.accent),
             ),
           ],
         ),
@@ -340,8 +344,15 @@ class _EmptyMeals extends StatelessWidget {
 
 class _ErrorView extends StatelessWidget {
   final String message;
+  final bool isUnauthorized;
   final VoidCallback onRetry;
-  const _ErrorView({required this.message, required this.onRetry});
+  final VoidCallback onRelogin;
+  const _ErrorView({
+    required this.message,
+    required this.isUnauthorized,
+    required this.onRetry,
+    required this.onRelogin,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -353,11 +364,19 @@ class _ErrorView extends StatelessWidget {
           children: [
             ErrorBanner(message),
             const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Try again'),
-            ),
+            // A dead token can't be retried — send the user to log in again.
+            if (isUnauthorized)
+              FilledButton.icon(
+                onPressed: onRelogin,
+                icon: const Icon(Icons.login),
+                label: const Text('Log in again'),
+              )
+            else
+              OutlinedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try again'),
+              ),
           ],
         ),
       ),

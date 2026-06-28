@@ -8,6 +8,7 @@ import '../../state/profile_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../util/profile_options.dart';
 import '../../widgets/error_banner.dart';
+import '../settings/settings_screen.dart';
 import 'profile_edit_screen.dart';
 
 /// Profile tab: backend-computed summary (BMI + caveat, daily target, guidance,
@@ -20,26 +21,49 @@ class ProfileScreen extends ConsumerWidget {
     final profileAsync = ref.watch(profileProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: profileAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ErrorBanner(err.toString()),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: () => ref.invalidate(profileProvider),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Try again'),
-                ),
-              ],
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
             ),
           ),
-        ),
+        ],
+      ),
+      body: profileAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) {
+          final unauthorized = err is ApiException && err.isUnauthorized;
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ErrorBanner(err.toString()),
+                  const SizedBox(height: 16),
+                  // A dead token can't be retried — send the user to log in.
+                  if (unauthorized)
+                    FilledButton.icon(
+                      onPressed: () =>
+                          ref.read(authControllerProvider.notifier).logout(),
+                      icon: const Icon(Icons.login),
+                      label: const Text('Log in again'),
+                    )
+                  else
+                    OutlinedButton.icon(
+                      onPressed: () => ref.invalidate(profileProvider),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Try again'),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
         data: (summary) => RefreshIndicator(
           onRefresh: () async => ref.invalidate(profileProvider),
           child: ListView(
@@ -48,8 +72,6 @@ class ProfileScreen extends ConsumerWidget {
               _SummaryCard(summary: summary),
               const SizedBox(height: 16),
               _StatsCard(summary: summary),
-              const SizedBox(height: 16),
-              _TrainingConsentTile(summary: summary),
               const SizedBox(height: 24),
               OutlinedButton.icon(
                 onPressed: () =>
@@ -77,22 +99,48 @@ class _SummaryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(summary.displayName,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 18)),
             Text(summary.email,
-                style: const TextStyle(fontWeight: FontWeight.w700)),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
             const SizedBox(height: 16),
             if (summary.targetKcal != null) ...[
-              Text('Daily calorie target',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              Row(
+                children: [
+                  Text('Daily calorie target',
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  if (summary.targetIsCustom) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: context.accent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text('Custom',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: context.accent)),
+                    ),
+                  ],
+                ],
+              ),
               const SizedBox(height: 2),
               Text(
                 '${summary.targetKcal!.round()} kcal',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.accent,
+                  color: context.accent,
                 ),
               ),
-              if (summary.bmrKcal != null && summary.tdeeKcal != null)
+              if (!summary.targetIsCustom &&
+                  summary.bmrKcal != null &&
+                  summary.tdeeKcal != null)
                 Text(
                   'BMR ${summary.bmrKcal!.round()} · '
                   'TDEE ${summary.tdeeKcal!.round()} kcal',
@@ -213,71 +261,6 @@ class _StatsCard extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Consent toggle for using meal images to improve the model. Writes via
-/// PUT /profile immediately; plain-language explanation included.
-class _TrainingConsentTile extends ConsumerStatefulWidget {
-  final ProfileSummary summary;
-  const _TrainingConsentTile({required this.summary});
-
-  @override
-  ConsumerState<_TrainingConsentTile> createState() =>
-      _TrainingConsentTileState();
-}
-
-class _TrainingConsentTileState extends ConsumerState<_TrainingConsentTile> {
-  late bool _value = widget.summary.allowTrainingUse;
-  bool _saving = false;
-
-  Future<void> _toggle(bool next) async {
-    setState(() {
-      _value = next;
-      _saving = true;
-    });
-    try {
-      await ref
-          .read(profileApiProvider)
-          .update(ProfileUpdate(allowTrainingUse: next));
-      ref.invalidate(profileProvider);
-    } on ApiException catch (e) {
-      if (mounted) {
-        setState(() => _value = !next); // revert on failure
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 8, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _value,
-              onChanged: _saving ? null : _toggle,
-              title: const Text('Help improve recognition',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: const Text('Allow my meal photos to train the model'),
-            ),
-            Text(
-              'If on, your meal photos (with location/EXIF data removed) may be '
-              'kept to improve dish recognition. Off by default; you can change '
-              'this anytime. Existing logs are unaffected.',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-          ],
-        ),
       ),
     );
   }

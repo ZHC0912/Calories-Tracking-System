@@ -4,21 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/shell/root_shell.dart';
 import 'state/auth_provider.dart';
+import 'state/theme_provider.dart';
 import 'theme/app_theme.dart';
 
 void main() {
   runApp(const ProviderScope(child: CaloriesApp()));
 }
 
-class CaloriesApp extends StatelessWidget {
+class CaloriesApp extends ConsumerWidget {
   const CaloriesApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accent = ref.watch(accentColorProvider);
     return MaterialApp(
       title: 'Calories',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
+      theme: AppTheme.light(accent),
       home: const _AuthGate(),
     );
   }

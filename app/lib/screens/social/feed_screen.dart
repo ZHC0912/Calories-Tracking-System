@@ -92,7 +92,7 @@ class _FeedCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppTheme.accent,
+                  backgroundColor: context.accent,
                   child: Text(
                     post.author.displayName.isEmpty
                         ? '?'
@@ -163,7 +163,7 @@ class _ConsistencyLine extends StatelessWidget {
         Icon(
           snapshot.logged ? Icons.check_circle : Icons.remove_circle_outline,
           size: 18,
-          color: snapshot.logged ? AppTheme.accent : Colors.grey,
+          color: snapshot.logged ? context.accent : Colors.grey,
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -287,11 +287,11 @@ class _ReactionBarState extends ConsumerState<_ReactionBar> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: mine
-                  ? AppTheme.accent.withValues(alpha: 0.15)
+                  ? context.accent.withValues(alpha: 0.15)
                   : const Color(0xFFF3EEE8),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: mine ? AppTheme.accent : Colors.transparent,
+                color: mine ? context.accent : Colors.transparent,
               ),
             ),
             child: Row(

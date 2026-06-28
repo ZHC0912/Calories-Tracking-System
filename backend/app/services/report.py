@@ -34,14 +34,16 @@ def utc_window(day: date_type, tz_name: str) -> tuple[datetime, datetime]:
 
 
 def _target_for(user: User) -> float | None:
-    """Computed daily target, or None if the profile lacks required stats."""
-    if None in (user.weight_kg, user.height_cm, user.age, user.sex):
-        return None
-    bmr = target_service.bmr_mifflin_st_jeor(
-        user.weight_kg, user.height_cm, user.age, user.sex
-    )
-    tdee = target_service.tdee(bmr, user.activity_level or "sedentary")
-    return target_service.daily_target(tdee, user.goal or "maintain")
+    """Daily target: the user's override if set, else the computed one (None when
+    the profile lacks the stats needed to compute it)."""
+    computed = None
+    if None not in (user.weight_kg, user.height_cm, user.age, user.sex):
+        bmr = target_service.bmr_mifflin_st_jeor(
+            user.weight_kg, user.height_cm, user.age, user.sex
+        )
+        tdee = target_service.tdee(bmr, user.activity_level or "sedentary")
+        computed = target_service.daily_target(tdee, user.goal or "maintain")
+    return target_service.effective_target(user.target_kcal_override, computed)
 
 
 def build_daily_report(db: Session, user: User, day: date_type) -> DailyReport:

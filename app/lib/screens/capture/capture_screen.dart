@@ -188,7 +188,7 @@ class _ImageArea extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.add_a_photo_outlined,
-                        size: 44, color: AppTheme.accent),
+                        size: 44, color: context.accent),
                     const SizedBox(height: 10),
                     Text(
                       'Tap to take a photo',

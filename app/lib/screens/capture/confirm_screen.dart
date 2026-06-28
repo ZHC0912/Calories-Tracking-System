@@ -294,10 +294,10 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
                 const Spacer(),
                 Text(
                   kcalText(_previewKcal(item)),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
-                    color: AppTheme.accent,
+                    color: context.accent,
                   ),
                 ),
               ],
@@ -325,7 +325,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
           labelText: 'Dish',
           isDense: true,
           suffixIcon: IconButton(
-            icon: const Icon(Icons.check, color: AppTheme.accent),
+            icon: Icon(Icons.check, color: context.accent),
             onPressed: () => setState(() {
               item.dish = item.dishCtrl.text.trim();
               item.editingDish = false;
@@ -433,14 +433,14 @@ class _ConfirmDishPrompt extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3E9),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.3)),
+        border: Border.all(color: context.accent.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.help_outline, size: 18, color: AppTheme.accent),
+              Icon(Icons.help_outline, size: 18, color: context.accent),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

@@ -6,8 +6,9 @@ import '../../state/auth_provider.dart';
 import '../../widgets/error_banner.dart';
 import 'register_screen.dart';
 
-/// Email + password login. This screen is shown directly by the auth gate, so
-/// on success the gate rebuilds into the home screen — no navigation needed.
+/// Username + password login (the backend also accepts an email as the handle).
+/// Shown directly by the auth gate, so on success the gate rebuilds into the
+/// home screen. "Remember me" controls whether the token is kept across restarts.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -17,15 +18,32 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
+  final _username = TextEditingController();
   final _password = TextEditingController();
 
+  bool _remember = true;
   bool _submitting = false;
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _prefillRememberedUsername();
+  }
+
+  Future<void> _prefillRememberedUsername() async {
+    final remembered =
+        await ref.read(authControllerProvider.notifier).rememberedUsername();
+    if (!mounted || remembered == null || remembered.isEmpty) return;
+    setState(() {
+      _username.text = remembered;
+      _remember = true;
+    });
+  }
+
+  @override
   void dispose() {
-    _email.dispose();
+    _username.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -39,7 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await ref
           .read(authControllerProvider.notifier)
-          .login(_email.text.trim(), _password.text);
+          .login(_username.text.trim(), _password.text, remember: _remember);
       // Success: the gate switches to HomeScreen automatically.
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -76,19 +94,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 32),
                   TextFormField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.email],
+                    controller: _username,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.username],
                     decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.mail_outline),
+                      labelText: 'Username',
+                      prefixIcon: Icon(Icons.person_outline),
                     ),
-                    validator: (v) {
-                      final value = (v ?? '').trim();
-                      if (value.isEmpty) return 'Enter your email';
-                      if (!value.contains('@')) return 'Enter a valid email';
-                      return null;
-                    },
+                    validator: (v) =>
+                        (v ?? '').trim().isEmpty ? 'Enter your username' : null,
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
@@ -102,6 +116,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     validator: (v) =>
                         (v ?? '').isEmpty ? 'Enter your password' : null,
                     onFieldSubmitted: (_) => _submit(),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _remember,
+                        onChanged: _submitting
+                            ? null
+                            : (v) => setState(() => _remember = v ?? false),
+                      ),
+                      const Text('Remember me'),
+                    ],
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 16),

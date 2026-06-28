@@ -207,9 +207,9 @@ class _DayReport extends StatelessWidget {
                         ),
                         Text(
                           kcalText(m.kcal),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.accent,
+                            color: context.accent,
                           ),
                         ),
                       ],

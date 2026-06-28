@@ -67,7 +67,7 @@ def public_user(user: User) -> PublicUser:
     return PublicUser(
         id=user.id,
         handle=user.email,
-        display_name=user.email.split("@", 1)[0],
+        display_name=user.username or user.email.split("@", 1)[0],
     )
 
 

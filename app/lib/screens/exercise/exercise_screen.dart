@@ -28,6 +28,11 @@ const List<String> _metActivities = [
   'skipping rope',
 ];
 
+/// Sentinel appended to the "By time" activity dropdown. Picking it lets the
+/// user type any activity and enter the calories directly (the backend's
+/// direct-kcal path), so no MET value is needed and it never errors.
+const String _kOtherActivity = '__other__';
+
 /// Log exercise two ways, mirroring the backend: activity + minutes (backend
 /// computes kcal via METs and the user's weight) or a direct kcal entry.
 class ExerciseScreen extends ConsumerStatefulWidget {
@@ -63,7 +68,20 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
       _error = null;
     });
     try {
-      if (_mode == 0) {
+      if (_mode == 0 && _activity == _kOtherActivity) {
+        // "Other" in time mode: typed activity + direct calories.
+        final activity = _customActivity.text.trim();
+        final kcal = double.tryParse(_kcal.text.trim());
+        if (activity.isEmpty) {
+          throw const ApiException('Enter the activity name.');
+        }
+        if (kcal == null || kcal <= 0) {
+          throw const ApiException('Enter the calories burned.');
+        }
+        await ref
+            .read(logApiProvider)
+            .logExercise(activity: activity, kcal: kcal);
+      } else if (_mode == 0) {
         final mins = double.tryParse(_minutes.text.trim());
         if (mins == null || mins <= 0) {
           throw const ApiException('Enter how many minutes you exercised.');
@@ -89,6 +107,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
       if (!mounted) return;
       _minutes.clear();
       _kcal.clear();
+      _customActivity.clear();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Exercise logged')),
       );
@@ -169,45 +188,82 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
   }
 
   Widget _buildTimeMode(bool hasWeight) {
+    final isOther = _activity == _kOtherActivity;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (!hasWeight)
+        // The weight is only needed for the MET computation, not for "Other".
+        if (!hasWeight && !isOther)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(
               'Add your weight in Profile to compute calories from time — or '
-              'use "By calories" instead.',
+              'pick "Other" to enter the calories yourself.',
               style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
             ),
           ),
         DropdownButtonFormField<String>(
           value: _activity,
           isExpanded: true,
+          // Cap the popup so it scrolls instead of filling the whole page.
+          menuMaxHeight: 320,
           decoration: const InputDecoration(labelText: 'Activity'),
-          items: _metActivities
-              .map((a) => DropdownMenuItem(value: a, child: Text(_titleCase(a))))
-              .toList(),
-          onChanged: (v) => setState(() => _activity = v!),
+          items: [
+            ..._metActivities.map(
+              (a) => DropdownMenuItem(value: a, child: Text(_titleCase(a))),
+            ),
+            const DropdownMenuItem(
+              value: _kOtherActivity,
+              child: Text('Other (enter calories)'),
+            ),
+          ],
+          onChanged: (v) => setState(() {
+            _activity = v!;
+            _error = null;
+          }),
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: _minutes,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-          ],
-          decoration: const InputDecoration(
-            labelText: 'Duration',
-            suffixText: 'min',
-            prefixIcon: Icon(Icons.timer_outlined),
+        if (isOther) ...[
+          TextField(
+            controller: _customActivity,
+            decoration: const InputDecoration(
+              labelText: 'Activity name',
+              hintText: 'e.g. kayaking',
+              prefixIcon: Icon(Icons.fitness_center),
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Calories are computed by the backend from METs and your weight.',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-        ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _kcal,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+            ],
+            decoration: const InputDecoration(
+              labelText: 'Calories burned',
+              suffixText: 'kcal',
+              prefixIcon: Icon(Icons.local_fire_department_outlined),
+            ),
+          ),
+        ] else ...[
+          TextField(
+            controller: _minutes,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+            ],
+            decoration: const InputDecoration(
+              labelText: 'Duration',
+              suffixText: 'min',
+              prefixIcon: Icon(Icons.timer_outlined),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Calories are computed by the backend from METs and your weight.',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          ),
+        ],
       ],
     );
   }
@@ -257,7 +313,7 @@ class _BurnedToday extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.local_fire_department, color: AppTheme.accent),
+          Icon(Icons.local_fire_department, color: context.accent),
           const SizedBox(width: 10),
           Text('Burned today',
               style: TextStyle(color: Colors.grey.shade600)),

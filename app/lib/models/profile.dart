@@ -7,6 +7,7 @@ library;
 
 class ProfileSummary {
   final String email;
+  final String? username;
   final double? weightKg;
   final double? heightCm;
   final int? age;
@@ -21,12 +22,17 @@ class ProfileSummary {
   final String? bmiNote;
   final double? bmrKcal;
   final double? tdeeKcal;
+  // targetKcal is the EFFECTIVE target (override if set, else computed).
+  // targetKcalOverride is the raw user value; targetIsCustom says which applies.
   final double? targetKcal;
+  final double? targetKcalOverride;
+  final bool targetIsCustom;
   final String activityGuidance;
   final String note;
 
   const ProfileSummary({
     required this.email,
+    required this.username,
     required this.weightKg,
     required this.heightCm,
     required this.age,
@@ -40,9 +46,18 @@ class ProfileSummary {
     required this.bmrKcal,
     required this.tdeeKcal,
     required this.targetKcal,
+    required this.targetKcalOverride,
+    required this.targetIsCustom,
     required this.activityGuidance,
     required this.note,
   });
+
+  /// What to show as the user's name: their chosen username, else the email
+  /// prefix (mirrors the backend's social display-name fallback).
+  String get displayName =>
+      (username != null && username!.isNotEmpty)
+          ? username!
+          : email.split('@').first;
 
   /// The backend computes a target once weight/height/age/sex are all present.
   bool get isComplete =>
@@ -53,6 +68,7 @@ class ProfileSummary {
   factory ProfileSummary.fromJson(Map<String, dynamic> json) {
     return ProfileSummary(
       email: json['email'] as String,
+      username: json['username'] as String?,
       weightKg: _toDouble(json['weight_kg']),
       heightCm: _toDouble(json['height_cm']),
       age: (json['age'] as num?)?.toInt(),
@@ -66,6 +82,8 @@ class ProfileSummary {
       bmrKcal: _toDouble(json['bmr_kcal']),
       tdeeKcal: _toDouble(json['tdee_kcal']),
       targetKcal: _toDouble(json['target_kcal']),
+      targetKcalOverride: _toDouble(json['target_kcal_override']),
+      targetIsCustom: (json['target_is_custom'] as bool?) ?? false,
       activityGuidance: (json['activity_guidance'] as String?) ?? '',
       note: (json['note'] as String?) ?? '',
     );
@@ -75,6 +93,7 @@ class ProfileSummary {
 /// Partial update for `PUT /profile` — only non-null fields are sent, matching
 /// the backend's `exclude_unset` behavior.
 class ProfileUpdate {
+  final String? username;
   final double? weightKg;
   final double? heightCm;
   final int? age;
@@ -83,8 +102,14 @@ class ProfileUpdate {
   final String? goal;
   final String? timezone;
   final bool? allowTrainingUse;
+  final double? targetKcalOverride;
+
+  /// When true, sends `target_kcal_override: null` to CLEAR the custom target
+  /// (revert to the computed one). Needed because [toJson] otherwise omits nulls.
+  final bool clearTargetOverride;
 
   const ProfileUpdate({
+    this.username,
     this.weightKg,
     this.heightCm,
     this.age,
@@ -93,9 +118,12 @@ class ProfileUpdate {
     this.goal,
     this.timezone,
     this.allowTrainingUse,
+    this.targetKcalOverride,
+    this.clearTargetOverride = false,
   });
 
   Map<String, dynamic> toJson() => {
+        if (username != null) 'username': username,
         if (weightKg != null) 'weight_kg': weightKg,
         if (heightCm != null) 'height_cm': heightCm,
         if (age != null) 'age': age,
@@ -104,6 +132,9 @@ class ProfileUpdate {
         if (goal != null) 'goal': goal,
         if (timezone != null) 'timezone': timezone,
         if (allowTrainingUse != null) 'allow_training_use': allowTrainingUse,
+        if (targetKcalOverride != null)
+          'target_kcal_override': targetKcalOverride,
+        if (clearTargetOverride) 'target_kcal_override': null,
       };
 }
 

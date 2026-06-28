@@ -37,6 +37,34 @@ def test_login_with_wrong_password_rejected(client):
     assert resp.status_code == 401
 
 
+def test_login_with_username_case_insensitive(client):
+    client.post(
+        "/auth/register",
+        json={
+            "email": "e@example.com",
+            "password": "password123",
+            "username": "EatRunner",
+        },
+    )
+    resp = client.post(
+        "/auth/login", json={"username": "eatrunner", "password": "password123"}
+    )
+    assert resp.status_code == 200
+    assert resp.json()["access_token"]
+
+
+def test_duplicate_username_rejected(client):
+    client.post(
+        "/auth/register",
+        json={"email": "f@example.com", "password": "password123", "username": "Taken"},
+    )
+    resp = client.post(
+        "/auth/register",
+        json={"email": "g@example.com", "password": "password123", "username": "taken"},
+    )
+    assert resp.status_code == 409
+
+
 def test_protected_route_requires_token(client):
     assert client.get("/profile").status_code in (401, 403)
 

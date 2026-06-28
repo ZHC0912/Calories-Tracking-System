@@ -220,7 +220,7 @@ class _ResultView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 8),
-          Icon(Icons.check_circle, color: AppTheme.accent, size: 48),
+          Icon(Icons.check_circle, color: context.accent, size: 48),
           const SizedBox(height: 12),
           const Text(
             "You're all set",
@@ -278,10 +278,10 @@ class _BigStat extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w800,
-              color: AppTheme.accent,
+              color: context.accent,
             ),
           ),
         ],

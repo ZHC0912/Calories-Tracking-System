@@ -17,6 +17,7 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _username = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
 
@@ -25,6 +26,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   void dispose() {
+    _username.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
@@ -40,7 +42,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       // register() also stores the token, so we're logged in straight away.
       await ref
           .read(authControllerProvider.notifier)
-          .register(_email.text.trim(), _password.text);
+          .register(_email.text.trim(), _password.text, _username.text.trim());
       if (mounted) Navigator.of(context).pop(); // back to the gate -> home
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -71,6 +73,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                 ),
                 const SizedBox(height: 24),
+                TextFormField(
+                  controller: _username,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    helperText: 'Shown to friends; you can change it later',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  validator: (v) {
+                    final value = (v ?? '').trim();
+                    if (value.isEmpty) return 'Choose a username';
+                    if (value.length > 30) return 'Max 30 characters';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
                 TextFormField(
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,

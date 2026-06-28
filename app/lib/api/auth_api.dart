@@ -2,23 +2,33 @@ import '../models/auth.dart';
 import 'api_client.dart';
 
 /// `POST /auth/register` and `POST /auth/login` (schemas/user.py).
-/// Both take `{email, password}` and return a `{access_token, token_type}`.
+/// Register takes `{email, password, username}`; login takes `{username,
+/// password}` (the backend matches it against a username or an email). Both
+/// return a `{access_token, token_type}`.
 class AuthApi {
   final ApiClient client;
   const AuthApi(this.client);
 
-  Future<TokenResponse> register(String email, String password) =>
-      _post('/auth/register', email, password);
+  Future<TokenResponse> register(
+    String email,
+    String password,
+    String username,
+  ) =>
+      _post('/auth/register', {
+        'email': email,
+        'password': password,
+        'username': username,
+      });
 
-  Future<TokenResponse> login(String email, String password) =>
-      _post('/auth/login', email, password);
+  Future<TokenResponse> login(String username, String password) =>
+      _post('/auth/login', {
+        'username': username,
+        'password': password,
+      });
 
-  Future<TokenResponse> _post(String path, String email, String password) async {
+  Future<TokenResponse> _post(String path, Map<String, dynamic> data) async {
     try {
-      final res = await client.dio.post(
-        path,
-        data: {'email': email, 'password': password},
-      );
+      final res = await client.dio.post(path, data: data);
       final status = res.statusCode ?? 0;
       if (status >= 200 && status < 300) {
         return TokenResponse.fromJson(res.data as Map<String, dynamic>);

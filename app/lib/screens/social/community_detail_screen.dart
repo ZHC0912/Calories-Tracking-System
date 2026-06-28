@@ -98,7 +98,7 @@ class _MemberTile extends StatelessWidget {
     return Card(
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: isOwner ? AppTheme.accent : null,
+          backgroundColor: isOwner ? context.accent : null,
           child: Text(
             member.user.displayName.isEmpty
                 ? '?'

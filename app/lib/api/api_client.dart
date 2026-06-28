@@ -24,6 +24,10 @@ class ApiClient {
   final Dio dio;
   String? _token;
 
+  /// Invoked when the server returns 401 (an expired or invalid token). The
+  /// auth layer hooks this to clear the saved token and route back to login.
+  void Function()? onUnauthorized;
+
   ApiClient()
       : dio = Dio(
           BaseOptions(
@@ -41,6 +45,14 @@ class ApiClient {
             options.headers['Authorization'] = 'Bearer $_token';
           }
           handler.next(options);
+        },
+        onResponse: (response, handler) {
+          // 401s arrive here (not onError) because validateStatus accepts every
+          // status below 500. Tell the auth layer so it can log the user out.
+          if (response.statusCode == 401) {
+            onUnauthorized?.call();
+          }
+          handler.next(response);
         },
       ),
     );

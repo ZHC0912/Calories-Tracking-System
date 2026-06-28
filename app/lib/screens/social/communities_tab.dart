@@ -65,31 +65,39 @@ class CommunitiesTab extends ConsumerWidget {
       );
 
   Future<void> _showCreateDialog(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController();
     final created = await showDialog<bool>(
       context: context,
-      builder: (ctx) => _CreateCommunityDialog(controller: controller, ref: ref),
+      builder: (ctx) => const _CreateCommunityDialog(),
     );
-    controller.dispose();
     if (created == true) ref.invalidate(myCommunitiesProvider);
   }
 }
 
-class _CreateCommunityDialog extends StatefulWidget {
-  final TextEditingController controller;
-  final WidgetRef ref;
-  const _CreateCommunityDialog({required this.controller, required this.ref});
+/// Owns its own ref and controller. Must NOT borrow the parent's WidgetRef:
+/// the dialog is built under the root overlay (a different element subtree), so
+/// reusing the parent's ref corrupts Riverpod's dependency bookkeeping and trips
+/// the `_dependents.isEmpty` assertion on dismiss.
+class _CreateCommunityDialog extends ConsumerStatefulWidget {
+  const _CreateCommunityDialog();
 
   @override
-  State<_CreateCommunityDialog> createState() => _CreateCommunityDialogState();
+  ConsumerState<_CreateCommunityDialog> createState() =>
+      _CreateCommunityDialogState();
 }
 
-class _CreateCommunityDialogState extends State<_CreateCommunityDialog> {
+class _CreateCommunityDialogState extends ConsumerState<_CreateCommunityDialog> {
+  final _controller = TextEditingController();
   bool _saving = false;
   String? _error;
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   Future<void> _create() async {
-    final name = widget.controller.text.trim();
+    final name = _controller.text.trim();
     if (name.isEmpty) {
       setState(() => _error = 'Enter a name');
       return;
@@ -99,7 +107,7 @@ class _CreateCommunityDialogState extends State<_CreateCommunityDialog> {
       _error = null;
     });
     try {
-      await widget.ref.read(communityApiProvider).create(name);
+      await ref.read(communityApiProvider).create(name);
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -116,7 +124,7 @@ class _CreateCommunityDialogState extends State<_CreateCommunityDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
-            controller: widget.controller,
+            controller: _controller,
             autofocus: true,
             maxLength: 80,
             decoration: const InputDecoration(
@@ -157,9 +165,9 @@ class _CommunityCard extends StatelessWidget {
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: const CircleAvatar(
-          backgroundColor: AppTheme.accent,
-          child: Icon(Icons.groups, color: Colors.white),
+        leading: CircleAvatar(
+          backgroundColor: context.accent,
+          child: const Icon(Icons.groups, color: Colors.white),
         ),
         title: Text(community.name,
             style: const TextStyle(fontWeight: FontWeight.w700)),

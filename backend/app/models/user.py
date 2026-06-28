@@ -21,6 +21,10 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    # Display name the user picks at registration and can change later. NOT the
+    # identity (that stays `id`/`email`) and NOT unique — it is only what friends
+    # see. Nullable so accounts created before this column fall back to the email.
+    username: Mapped[str | None] = mapped_column(String(30), nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
@@ -34,6 +38,11 @@ class User(Base):
     activity_level: Mapped[str | None] = mapped_column(String(20), nullable=True)
     goal: Mapped[str | None] = mapped_column(String(10), nullable=True)  # lose|maintain|gain
     timezone: Mapped[str] = mapped_column(String(64), default="UTC", nullable=False)
+
+    # Optional user-set daily calorie target. When NULL the target is computed
+    # from the stats above (services/target.py); when set, this overrides it
+    # (still clamped to the MIN_SAFE_KCAL safety floor on write).
+    target_kcal_override: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Opt-in consent to use this user's (EXIF-stripped) meal images for future
     # model training. Defaults FALSE — privacy-respecting by default.

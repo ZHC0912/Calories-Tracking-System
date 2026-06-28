@@ -60,3 +60,63 @@ def test_toggle_training_consent(client):
         "/profile", json={"allow_training_use": True}, headers=auth_header(token)
     )
     assert resp.json()["allow_training_use"] is True
+
+
+def test_register_with_username_shows_in_summary_and_social(client):
+    resp = client.post(
+        "/auth/register",
+        json={"email": "nick@example.com", "password": "password123",
+              "username": "Nick the Runner"},
+    )
+    assert resp.status_code == 201
+    token = resp.json()["access_token"]
+    summary = client.get("/profile", headers=auth_header(token)).json()
+    assert summary["username"] == "Nick the Runner"
+
+
+def test_username_editable_via_profile_update(client):
+    token = register_and_login(client)
+    resp = client.put(
+        "/profile", json={"username": "  Renamed  "}, headers=auth_header(token)
+    )
+    assert resp.status_code == 200
+    assert resp.json()["username"] == "Renamed"  # trimmed
+
+
+def test_custom_target_override_wins_and_clamps(client):
+    token = register_and_login(client)
+    # Override with no stats at all still yields a target.
+    resp = client.put(
+        "/profile", json={"target_kcal_override": 1800}, headers=auth_header(token)
+    )
+    body = resp.json()
+    assert body["target_kcal"] == 1800
+    assert body["target_kcal_override"] == 1800
+    assert body["target_is_custom"] is True
+
+    # Below the safe floor is clamped up to 1200.
+    resp = client.put(
+        "/profile", json={"target_kcal_override": 800}, headers=auth_header(token)
+    )
+    assert resp.json()["target_kcal"] == 1200.0
+
+    # The override also drives the daily report.
+    report = client.get("/report/today", headers=auth_header(token)).json()
+    assert report["target_kcal"] == 1200.0
+
+
+def test_clearing_target_override_reverts_to_computed(client):
+    token = register_and_login(client)
+    client.put("/profile", json=_full_profile(), headers=auth_header(token))
+    computed = round(1780.0 * 1.55, 1)
+
+    client.put(
+        "/profile", json={"target_kcal_override": 1500}, headers=auth_header(token)
+    )
+    # Explicit null clears the override -> back to the computed target.
+    resp = client.put(
+        "/profile", json={"target_kcal_override": None}, headers=auth_header(token)
+    )
+    body = resp.json()
+    assert body["target_is_custom"] is False
+    assert body["target_kcal"] == computed

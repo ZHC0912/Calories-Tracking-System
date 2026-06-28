@@ -8,6 +8,7 @@ are estimates.
 from zoneinfo import available_timezones
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..auth.deps import get_current_user
@@ -37,8 +38,13 @@ def _summary(user: User) -> ProfileSummary:
         tdee = target_service.tdee(bmr, user.activity_level or "sedentary")
         computed_target = target_service.daily_target(tdee, user.goal or "maintain")
 
+    effective_target = target_service.effective_target(
+        user.target_kcal_override, computed_target
+    )
+
     return ProfileSummary(
         email=user.email,
+        username=user.username,
         weight_kg=user.weight_kg,
         height_cm=user.height_cm,
         age=user.age,
@@ -51,7 +57,9 @@ def _summary(user: User) -> ProfileSummary:
         bmi_note=bmi_note,
         bmr_kcal=bmr,
         tdee_kcal=tdee,
-        target_kcal=computed_target,
+        target_kcal=effective_target,
+        target_kcal_override=user.target_kcal_override,
+        target_is_custom=user.target_kcal_override is not None,
         activity_guidance=target_service.ACTIVITY_GUIDANCE,
         note=target_service.NOT_MEDICAL_ADVICE,
     )
@@ -74,6 +82,28 @@ def update_profile(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Unknown timezone {fields['timezone']!r} (use an IANA name).",
+        )
+
+    if "username" in fields and fields["username"] is not None:
+        fields["username"] = fields["username"].strip() or None
+        new_username = fields["username"]
+        if new_username is not None:
+            clash = db.scalar(
+                select(User).where(
+                    func.lower(User.username) == new_username.lower(),
+                    User.id != user.id,
+                )
+            )
+            if clash is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Username already taken.",
+                )
+
+    # A provided override is clamped to the safe floor; an explicit null clears it.
+    if fields.get("target_kcal_override") is not None:
+        fields["target_kcal_override"] = target_service.clamp_target(
+            fields["target_kcal_override"]
         )
 
     for name, value in fields.items():

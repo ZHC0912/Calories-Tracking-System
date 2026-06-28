@@ -170,7 +170,7 @@ class _FriendTile extends StatelessWidget {
     return Card(
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: AppTheme.accent,
+          backgroundColor: context.accent,
           child: Text(_initial(friend.displayName),
               style: const TextStyle(color: Colors.white)),
         ),
